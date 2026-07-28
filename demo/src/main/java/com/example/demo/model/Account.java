@@ -46,14 +46,12 @@ public class Account {
         this.balance = balance;
     }
     @Override
-    public String toString() {
-        return """
-           --------------------------
-           Account No : %d
-           Holder     : %s
-           Type       : %s
-           Balance    : $%.2f
-           --------------------------
-           """.formatted(accountNo, holderName, accountType, balance);
+    public String toString(){
+        return "Account{" +
+                "accountNo=" + accountNo +
+                ", holderName='" + holderName + '\'' +
+                ", accountType='" + accountType + '\'' +
+                ", balance=" + balance +
+                '}';
     }
 }
