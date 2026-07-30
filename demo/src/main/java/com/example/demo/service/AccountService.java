@@ -4,6 +4,8 @@ import com.example.demo.model.Account;
 import com.example.demo.repository.AccountRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+
 @Service
 public class AccountService {
 
@@ -16,6 +18,9 @@ public class AccountService {
     public boolean createAccount(Account account){
         Account existingAccount = repository.findByAccountNo(account.getAccountNo());
         if(existingAccount != null){
+            return false;
+        }
+        if(existingAccount.getBalance()<0){
             return false;
         }
         repository.save(account);
@@ -72,6 +77,22 @@ public class AccountService {
         if(!deposit(receivingAccountNo,amount)){
             return false;
         }
+        return true;
+    }
+
+    public Collection<Account> getAllAccounts(){
+        return repository.findAll();
+    }
+
+    public Account findAccountByAccountNo(int accountNo){
+        return repository.findByAccountNo(accountNo);
+    }
+    public boolean deleteAccountByAccountNo(int accoutNo){
+        Account account = repository.findByAccountNo(accoutNo);
+        if(account == null){
+            return false;
+        }
+        repository.delete(accoutNo);
         return true;
     }
 }
