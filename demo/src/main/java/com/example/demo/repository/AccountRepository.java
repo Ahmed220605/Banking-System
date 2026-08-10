@@ -1,29 +1,19 @@
 package com.example.demo.repository;
 
-import com.example.demo.model.Account;
+import com.example.demo.entity.Account;
+import com.example.demo.entity.Customer;
+import com.example.demo.enums.AccountStatus;
+import com.example.demo.enums.AccountType;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Repository
-public class AccountRepository {
-    private Map<Integer, Account> accounts = new HashMap<>();
+public interface AccountRepository extends JpaRepository<Account, Long> {
+    Optional<Account> findByAccountNumber(String accountNumber);
+    List<Account> findByAccountType(AccountType accountType);
+    List<Account> findByAccountStatus(AccountStatus accountStatus);
+    List<Account> findByCustomerId(Long id);
 
-    public void save(Account account){
-        accounts.put(account.getAccountNo(), account);
-    }
-
-    public Account findByAccountNo(int accountNo) {
-        return accounts.get(accountNo);
-    }
-
-    public Collection<Account> findAll() {
-        return accounts.values();
-    }
-
-    public void delete(int accountNo){
-        accounts.remove(accountNo);
-    }
 }
