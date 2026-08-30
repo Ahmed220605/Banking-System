@@ -23,4 +23,13 @@ public class JwtService {
                 .signWith(key)
                 .expiration(date).compact();
     }
+    public String readUsename(String token){
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("username", String.class);
+    }
+
+    public Role readRole(String token){
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Role.valueOf(Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("role",String.class));
+    }
 }

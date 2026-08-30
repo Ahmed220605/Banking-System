@@ -76,6 +76,15 @@ public class GlobalExceptionHandler {
                 null
         ));
     }
+    @ExceptionHandler(AdminIsNotCreatedAsCustomerException.class)
+    public ResponseEntity<ApiResponse<?>> handleAdminIsNotCreatedAsCustomer(AdminIsNotCreatedAsCustomerException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse<>(
+                false,
+                ex.getMessage(),
+                null
+        ));
+    }
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(

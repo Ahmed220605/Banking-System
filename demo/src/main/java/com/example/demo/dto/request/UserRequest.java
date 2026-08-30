@@ -1,6 +1,8 @@
-package com.example.demo.entity;
+package com.example.demo.dto.request;
 
-import jakarta.persistence.*;
+import com.example.demo.enums.Role;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -8,19 +10,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
-@Entity
-@Table(name = "customers")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class Customer {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class UserRequest {
+    @NotBlank
+    private String username;
+    @NotBlank
+    private String password;
+    private Role role;
     @NotBlank
     private String name;
     @NotBlank
@@ -28,9 +28,4 @@ public class Customer {
     private String email;
     @NotBlank
     private String phone;
-    @OneToMany(mappedBy = "customer")
-    private List<Account> accounts;
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    private User user;
 }

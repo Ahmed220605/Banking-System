@@ -33,4 +33,5 @@ public class Account {
     private AccountStatus accountStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
 }

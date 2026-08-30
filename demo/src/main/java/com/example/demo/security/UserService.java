@@ -1,23 +1,38 @@
 package com.example.demo.security;
 
+import com.example.demo.dto.request.UserRequest;
+import com.example.demo.dto.response.UserResponse;
+import com.example.demo.entity.Customer;
 import com.example.demo.entity.User;
 import com.example.demo.enums.Role;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.repository.CustomerRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final CustomerRepository customerRepository;
+    private final UserMapper mapper;
 
-    public User createUser(String username, String password, Role role){
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setRole(role);
-        return userRepository.save(user);
+
+    public UserResponse createUser(UserRequest request){
+        User user = mapper.toEntity(request);
+        user = userRepository.save(user);
+
+        if(user.getRole() == Role.CUSTOMER){
+            Customer customer = new Customer();
+            customer.setName(request.getName());
+            customer.setEmail(request.getEmail());
+            customer.setPhone(request.getPhone());
+            customer.setUser(user);
+            customerRepository.save(customer);
+            return mapper.toResponseCustomer(user,customer);
+        }
+
+        return mapper.toResponseAdmin(user);
     }
 }
