@@ -17,19 +17,23 @@ public class JwtService {
 
     public String generateToken(String username, Role role){
         Date date = new Date(System.currentTimeMillis()+30*60*1000);
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = getSigningKey();
         return Jwts.builder().claim("username",username)
                 .claim("role",role)
                 .signWith(key)
                 .expiration(date).compact();
     }
-    public String readUsename(String token){
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    public String readUsername(String token){
+        SecretKey key = getSigningKey();
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("username", String.class);
     }
 
     public Role readRole(String token){
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = getSigningKey();
         return Role.valueOf(Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().get("role",String.class));
+    }
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

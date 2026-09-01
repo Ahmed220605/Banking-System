@@ -10,6 +10,7 @@ import com.example.demo.entity.Customer;
 import com.example.demo.entity.Transaction;
 import com.example.demo.enums.AccountStatus;
 import com.example.demo.enums.AccountType;
+import com.example.demo.enums.Role;
 import com.example.demo.enums.TransactionType;
 import com.example.demo.exception.*;
 import com.example.demo.mapper.AccountMapper;
@@ -21,6 +22,8 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 
@@ -40,9 +43,22 @@ public class AccountService {
 
 
     public AccountResponse createAccount(CreateAccountRequest request){
-        Customer customer = customerRepository.findById(request.getCustomerId()).
-                orElseThrow(()-> new CustomerNotFoundException(
-                        "Customer not found with this id "+request.getCustomerId()));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        String authority = authentication.getAuthorities().stream().findFirst().orElseThrow().getAuthority();
+        Role role = Role.valueOf(
+                authority.replace("ROLE_", "")
+        );
+        Customer customer;
+        if(Role.CUSTOMER.equals(role)){
+            customer = customerRepository.findByUser_Username(username).
+                    orElseThrow(()-> new CustomerNotFoundException(
+                            "Customer not found for username: " + username));
+        }else {
+            customer = customerRepository.findById(request.getCustomerId()).
+                    orElseThrow(()-> new CustomerNotFoundException(
+                            "Customer not found for this id: " + request.getCustomerId()));
+        }
         Account account = mapper.toEntity(request,customer);
 
         account.setAccountStatus(AccountStatus.ACTIVE);
@@ -50,13 +66,30 @@ public class AccountService {
 
         savedAccount.setAccountNumber(generateAccountNumber(account.getId()));
         savedAccount = repository.save(savedAccount);
-
-        return mapper.toResponse(savedAccount);
+        AccountResponse response = mapper.toResponse(savedAccount);
+        System.out.println(response.getHolderName());
+        return response;
     }
 
     public AccountResponse getAccountByAccountNumber(String accountNumber){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        String authority = authentication.getAuthorities().stream().findFirst().orElseThrow().getAuthority();
+        Role role = Role.valueOf(
+                authority.replace("ROLE_", "")
+        );
         Account account = getActiveAccount(accountNumber);
-        return mapper.toResponse(account);
+        if(Role.ADMIN.equals(role)){
+            return mapper.toResponse(account);
+        } else if (Role.CUSTOMER.equals(role)) {
+            if(account.getCustomer().getUser().getUsername().equals(username)){
+                return mapper.toResponse(account);
+            }else{
+                throw new UnauthorizedAccountAccessException("Unauthorized account access");
+            }
+        }
+
+        throw new RoleNotMatchedException("Role not match");
     }
 
     public List<AccountResponse> getAllAccounts() {
@@ -66,20 +99,58 @@ public class AccountService {
                 .toList();
     }
 
-    public AccountResponse depositAmount(String accountNumber, DepositRequest request){
-        Account account = repository.findByAccountNumber(accountNumber).
-                orElseThrow(()-> new AccountNotFoundException( "Account not found with account number: " + accountNumber));
+    public AccountResponse depositAmount(String accountNumber, DepositRequest request) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        String authority = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .orElseThrow()
+                .getAuthority();
+
+        Role role = Role.valueOf(
+                authority.replace("ROLE_", "")
+        );
+
+        Account account = getActiveAccount(accountNumber);
+
+        // Authorization check
+        if (Role.ADMIN.equals(role)) {
+            // ADMIN is allowed to deposit into any account
+
+        } else if (Role.CUSTOMER.equals(role)) {
+
+            String accountOwnerUsername =
+                    account.getCustomer().getUser().getUsername();
+
+            if (!accountOwnerUsername.equals(username)) {
+                throw new UnauthorizedAccountAccessException(
+                        "Unauthorized account access"
+                );
+            }
+
+        } else {
+            throw new RoleNotMatchedException("Role not match");
+        }
+
+        // Deposit operation
         if (account.getAccountStatus() != AccountStatus.ACTIVE) {
             throw new InvalidAccountStatusException(
                     "Deposits are only allowed for ACTIVE accounts."
             );
         }
-        account.setBalance(account.getBalance().add(request.getAmount()));
+
+        account.setBalance(
+                account.getBalance().add(request.getAmount())
+        );
 
         Account savedAccount = repository.save(account);
 
         Transaction transaction = new Transaction();
-
         transaction.setAmount(request.getAmount());
         transaction.setTransactionType(TransactionType.DEPOSIT);
         transaction.setReceiverAccount(savedAccount);
@@ -88,12 +159,46 @@ public class AccountService {
 
         return mapper.toResponse(savedAccount);
     }
+
     @Transactional
     public AccountResponse withdrawAmount(String accountNumber, WithdrawRequest request){
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        String authority = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .orElseThrow()
+                .getAuthority();
+
+        Role role = Role.valueOf(
+                authority.replace("ROLE_", "")
+        );
+
         Account account = getActiveAccount(accountNumber);
+
+        if (Role.ADMIN.equals(role)) {
+
+        } else if (Role.CUSTOMER.equals(role)) {
+
+            String accountOwnerUsername =
+                    account.getCustomer().getUser().getUsername();
+
+            if (!accountOwnerUsername.equals(username)) {
+                throw new UnauthorizedAccountAccessException(
+                        "Unauthorized account access"
+                );
+            }
+
+        } else {
+            throw new RoleNotMatchedException("Role not match");
+        }
+
         if (account.getAccountStatus() != AccountStatus.ACTIVE) {
             throw new InvalidAccountStatusException(
-                    "Withdraw are only allowed for ACTIVE accounts."
+                    "Withdrawals are only allowed for ACTIVE accounts."
             );
         }
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
@@ -114,10 +219,38 @@ public class AccountService {
         return mapper.toResponse(savedAccount);
     }
 
+
     @Transactional
     public AccountResponse transferAmount(String senderAccountNumber, TransferRequest request){
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        String authority = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .orElseThrow()
+                .getAuthority();
+
+        Role role = Role.valueOf(
+                authority.replace("ROLE_", "")
+        );
+
         Account senderAccount = getActiveAccount(senderAccountNumber);
         Account receiverAccount = getActiveAccount(request.getReceiverAccountNumber());
+        if (Role.ADMIN.equals(role)) {
+
+        }else if(Role.CUSTOMER.equals(role)){
+            if(!senderAccount.getCustomer().getUser().getUsername().equals(username)){
+                throw new UnauthorizedAccountAccessException("Unauthorized account access");
+            }
+        }else{
+            throw new RoleNotMatchedException("Role not match");
+        }
+
+
+
         if(senderAccount.getAccountNumber().equals(receiverAccount.getAccountNumber())) {
             throw new SameAccountNumberException(
                     "Both are same account numbers."
@@ -145,6 +278,8 @@ public class AccountService {
 
         return mapper.toResponse(senderSavedAccount);
     }
+
+
     public AccountResponse blockAccount(String accountNumber){
         Account account = repository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException(
@@ -165,6 +300,7 @@ public class AccountService {
 
         return mapper.toResponse(savedAccount);
     }
+
 
     public AccountResponse unblockAccount(String accountNumber){
         Account account = repository.findByAccountNumber(accountNumber)

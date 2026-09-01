@@ -39,11 +39,11 @@ public class SecurityConfig {
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/auth/register").permitAll()
                 .requestMatchers(HttpMethod.GET,"/accounts").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.POST,"/accounts").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST,"/accounts").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
                 .requestMatchers(HttpMethod.GET, "/accounts/{accountNumber}").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
                 .requestMatchers(HttpMethod.PATCH, "/accounts/{accountNumber}/deposit").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
                 .requestMatchers(HttpMethod.PATCH, "/accounts/{accountNumber}/withdraw").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
-                .requestMatchers(HttpMethod.POST, "/accounts/{accountNumber}/transfer").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.PATCH, "/accounts/{accountNumber}/transfer").hasAnyAuthority("ROLE_ADMIN","ROLE_CUSTOMER")
                 .anyRequest().authenticated()).build();
     }
 

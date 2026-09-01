@@ -84,7 +84,22 @@ public class GlobalExceptionHandler {
                 null
         ));
     }
-
+    @ExceptionHandler(RoleNotMatchedException.class)
+    public ResponseEntity<ApiResponse<?>> handleRoleNotMatched(RoleNotMatchedException ex){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse<>(
+                false,
+                ex.getMessage(),
+                null
+        ));
+    }
+    @ExceptionHandler(UnauthorizedAccountAccessException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnauthorizedAccountAccess(UnauthorizedAccountAccessException ex){
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(
+                false,
+                ex.getMessage(),
+                null
+        ));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationException(
